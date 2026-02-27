@@ -3,39 +3,33 @@ import matplotlib.pyplot as plt
 
 def loadData():
     # Open file and load data into lists
-    # Break time and signal data into segments due to multiple recordings being concatenated in the CSV
+    # Breaking (time and signal) data into segments due to multiple recordings being concatenated in the CSV
     timeD = []
     signalD = []
-    segmentsSeen = 0
-    with open('ecgFiltered.csv', 'r') as f:
-        prev_time = None
+    with open('101_ekg.csv', 'r') as f:
+        print(next(f))  # discard first line
         for line in f:
-            a, _, b = line.partition(',')
+            a, b, c, _ = line.split(',')
             a = float(a)
             b = float(b)
-
-            if prev_time is not None and a < prev_time:
-                segmentsSeen+=1
-                if segmentsSeen == 100:
-                    break
-
-            timeD.append(a)
+            time = a/360.0
+            timeD.append(time)
             signalD.append(b)
-            prev_time = a
+        if len(timeD) == len(signalD):
+            print("Data loaded.\n")
     return timeD, signalD
 
 def filterConvolve(signalArray):
-    # Convert list to numpy array
+    windowSize = [1/8] * 8
+    # Convert list to numpy array in order to use convolve method
     signalArray = np.array(signalArray, dtype=float)
-    # Use convolve (moving average filter) to remove unwanted noise
-    filteredArray = np.convolve(signalArray, [0.2, 0.2, 0.2, 0.2, 0.2], 'same')
+    # Use convolve (moving average filter) to remove unwanted noise and using same to return the same amount of lines
+    filteredArray = np.convolve(signalArray, windowSize, 'same')
     return filteredArray
 
 if __name__ == "__main__":
     tData, sigData = loadData()
-    print(len(tData))
-    print(len(sigData))
-
+    # Filtering
     s = filterConvolve(sigData)
     # Saving filtered data for peak detection
     np.savetxt('ecg_filtered.csv', np.column_stack((tData, s)), delimiter=',')
@@ -43,7 +37,10 @@ if __name__ == "__main__":
     tData = np.array(tData)
     sigData = np.array(sigData)
     plt.figure(figsize=(12, 6))
+    start, end = 0, 30
     plt.plot(tData, sigData, label="Original", alpha=0.6)
+    plt.xlim(start, end)
+
     plt.plot(tData, s, label="Filtered")
     plt.xlabel("Time (s)")
     plt.ylabel("Amplitude")

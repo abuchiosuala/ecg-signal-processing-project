@@ -4,6 +4,8 @@
 #include <vector>
 #include <sstream>
 
+// function stod allows me to convert string to doubles
+// the initial getline function throws out my header line
 std::pair<std::vector<double>, std::vector<double>> storeData(std::ifstream& file) {
     std::vector<double> timeData;
     std::vector<double> signalData;
@@ -13,13 +15,14 @@ std::pair<std::vector<double>, std::vector<double>> storeData(std::ifstream& fil
         std::cerr << "File does not exist\n";
         return {{}, {}};
     }
-
+    std::getline(file, line); // skip header
     std::cout<<"Loading data from file\n";
     while(std::getline(file, line)) {
         std::stringstream ss(line);
         std::string timeStr, signalStr;
         if (std::getline(ss, timeStr, ',') && std::getline(ss, signalStr)) {
-            double time = std::stod(timeStr);
+            double index = std::stod(timeStr);
+            double time = index / 360.0; // Getting the time using the Hz
             double signal = std::stod(signalStr);
             timeData.push_back(time);
             signalData.push_back(signal);
@@ -30,11 +33,9 @@ std::pair<std::vector<double>, std::vector<double>> storeData(std::ifstream& fil
     }
     return {timeData, signalData};
 }
-
 int main() {
-    std::ifstream inputFile("../ecgData/data.csv");
+    std::ifstream inputFile("../scripts/ecg_filtered.csv");
     auto [timeData, signalData] = storeData(inputFile);
-    std::cout << timeData.size() << signalData.size();
+    std::cout << timeData.size() << " " <<  signalData.size() << '\n';
     inputFile.close();
-
 }
