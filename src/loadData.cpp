@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include "loadData.h"
 
 // function stod allows me to convert string to doubles
 // the initial getline function throws out my header line
@@ -32,10 +33,4 @@ std::pair<std::vector<double>, std::vector<double>> storeData(std::ifstream& fil
         std::cout << "Data Loaded\n";
     }
     return {timeData, signalData};
-}
-int main() {
-    std::ifstream inputFile("../scripts/ecg_filtered.csv");
-    auto [timeData, signalData] = storeData(inputFile);
-    std::cout << timeData.size() << " " <<  signalData.size() << '\n';
-    inputFile.close();
 }
