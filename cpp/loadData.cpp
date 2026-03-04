@@ -5,17 +5,11 @@
 #include <sstream>
 #include "loadData.h"
 
-// function stod allows me to convert string to doubles
-// the initial getline function throws out my header line
 std::pair<std::vector<double>, std::vector<double>> storeData(std::ifstream& file) {
     std::vector<double> timeData;
     std::vector<double> signalData;
     std::string line;
 
-    if(!file.is_open()) {
-        std::cerr << "File does not exist\n";
-        return {{}, {}};
-    }
     std::getline(file, line); // skip header
     std::cout<<"Loading data from file\n";
     while(std::getline(file, line)) {

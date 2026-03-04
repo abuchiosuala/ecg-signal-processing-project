@@ -1,12 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import argparse
 
-def loadData():
-    # Open file and load data into lists
-    # Breaking (time and signal) data into segments due to multiple recordings being concatenated in the CSV
+def loadData(filename):
+    """
+        Loads ECG data from a CSV file.
+        Args:
+            filename: Path to the CSV file containing ECG data.
+        Returns:
+            A tuple of two lists (timeData, signalData).
+        """
     timeD = []
     signalD = []
-    with open('101_ekg.csv', 'r') as f:
+    with open(filename, 'r') as f:
         print(next(f))  # discard first line
         for line in f:
             a, b, c, _ = line.split(',')
@@ -19,20 +25,30 @@ def loadData():
             print("Data loaded.\n")
     return timeD, signalD
 
-def filterConvolve(signalArray):
-    windowSize = [1/8] * 8
-    # Convert list to numpy array in order to use convolve method
+def filterConvolve(signalArray, window=8):
+    """
+    Applies a moving average filter to the signal using convolution.
+    Args:
+        signalArray: List of signal amplitude values.
+        window: Number of samples to average (default 8).
+    Returns:
+        Filtered signal as a numpy array.
+    """
+    windowSize = [1/window] * window
     signalArray = np.array(signalArray, dtype=float)
-    # Use convolve (moving average filter) to remove unwanted noise and using same to return the same amount of lines
     filteredArray = np.convolve(signalArray, windowSize, 'same')
     return filteredArray
 
 if __name__ == "__main__":
-    tData, sigData = loadData()
+    # Argparse used to allow CLI arguments
+    parser = argparse.ArgumentParser(description="Enter filename")
+    parser.add_argument("filename", help="Path to ECG CSV file")
+    args = parser.parse_args()
+    tData, sigData = loadData(args.filename)
     # Filtering
     s = filterConvolve(sigData)
     # Saving filtered data for peak detection
-    np.savetxt('ecg_filtered.csv', np.column_stack((tData, s)), delimiter=',')
+    np.savetxt('ecgFiltered.csv', np.column_stack((tData, s)), delimiter=',')
     # Convert list to numpy array for plotting
     tData = np.array(tData)
     sigData = np.array(sigData)
@@ -40,7 +56,6 @@ if __name__ == "__main__":
     start, end = 0, 30
     plt.plot(tData, sigData, label="Original", alpha=0.6)
     plt.xlim(start, end)
-
     plt.plot(tData, s, label="Filtered")
     plt.xlabel("Time (s)")
     plt.ylabel("Amplitude")
