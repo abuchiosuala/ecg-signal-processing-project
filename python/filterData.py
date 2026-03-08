@@ -15,12 +15,12 @@ def loadData(filename):
     with open(filename, 'r') as f:
         print(next(f))  # discard first line
         for line in f:
-            a, b, c, _ = line.split(',')
-            a = float(a)
-            b = float(b)
-            time = a/360.0
+            a, b, _, _ = line.split(',') # extra parameters are not needed
+            index = float(a)
+            signal = float(b)
+            time = index/360.0
             timeD.append(time)
-            signalD.append(b)
+            signalD.append(signal)
         if len(timeD) == len(signalD):
             print("Data loaded.\n")
     return timeD, signalD
