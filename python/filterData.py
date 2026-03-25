@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
+from scipy.signal import sosfiltfilt, butter
 
 def loadData(filename):
     """
@@ -25,6 +26,12 @@ def loadData(filename):
             print("Data loaded.\n")
     return timeD, signalD
 
+def butterFilter(array):
+    sos = butter(4, [0.5, 40], 'bandpass', output='sos', fs=360)
+    signalArray = np.array(array, dtype=float)
+    filteredArray = sosfiltfilt(sos, signalArray)
+    return filteredArray
+
 def filterConvolve(signalArray, window=8):
     """
     Applies a moving average filter to the signal using convolution.
@@ -46,15 +53,17 @@ if __name__ == "__main__":
     args = parser.parse_args()
     tData, sigData = loadData(args.filename)
     # Filtering
-    s = filterConvolve(sigData)
+    s = butterFilter(sigData)
+    # s = filterConvolve(sigData)
     # Saving filtered data for peak detection
     np.savetxt('ecgFiltered.csv', np.column_stack((tData, s)), delimiter=',')
     # Convert list to numpy array for plotting
     tData = np.array(tData)
     sigData = np.array(sigData)
+    sigData_centred = sigData - np.mean(sigData) 
     plt.figure(figsize=(12, 6))
     start, end = 0, 30
-    plt.plot(tData, sigData, label="Original", alpha=0.6)
+    plt.plot(tData, sigData_centred, label="Original", alpha=0.6)
     plt.xlim(start, end)
     plt.plot(tData, s, label="Filtered")
     plt.xlabel("Time (s)")
@@ -62,4 +71,3 @@ if __name__ == "__main__":
     plt.title("ECG Signal: Original vs Filtered")
     plt.legend()
     plt.show()
-
