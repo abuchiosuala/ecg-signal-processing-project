@@ -32,19 +32,42 @@ def butterFilter(array):
     filteredArray = sosfiltfilt(sos, signalArray)
     return filteredArray
 
+def peakDetection(array, threshold):
+    peaks = []
+    for index in range(1, len(array) - 1):
+        if array[index] > array[index + 1] and array[index] > array[index -1] and array[index] > threshold:
+            peaks.append(index)
+    return peaks
+
+def printS(arr):
+    for x in range(50):
+        print(arr[x])
+
 if __name__ == "__main__":
     # Argparse used to allow CLI arguments
     parser = argparse.ArgumentParser(description="Enter filename")
     parser.add_argument("filename", help="Path to ECG CSV file")
     args = parser.parse_args()
     tData, sigData = loadData(args.filename)
+
     # Filtering
     s = butterFilter(sigData)
+    printS(s)
+    maximum_value = max(s)
+    print(maximum_value)
+
+    # Peak Detection
+    peaks = peakDetection(s, 0.5)
+    print(len(peaks))
+    print(len(s))
+
     # Saving filtered data for peak detection
     np.savetxt('ecgFiltered.csv', np.column_stack((tData, s)), delimiter=',')
+
     # Convert list to numpy array for plotting
     tData = np.array(tData)
     sigData = np.array(sigData)
+
     # Subtract the mean to centre the signal around zero (removes DC offset/baseline shift)
     sigData_centred = sigData - np.mean(sigData)
     plt.figure(figsize=(12, 6))
