@@ -32,20 +32,6 @@ def butterFilter(array):
     filteredArray = sosfiltfilt(sos, signalArray)
     return filteredArray
 
-def filterConvolve(signalArray, window=8):
-    """
-    Applies a moving average filter to the signal using convolution.
-    Args:
-        signalArray: List of signal amplitude values.
-        window: Number of samples to average (default 8).
-    Returns:
-        Filtered signal as a numpy array.
-    """
-    windowSize = [1/window] * window
-    signalArray = np.array(signalArray, dtype=float)
-    filteredArray = np.convolve(signalArray, windowSize, 'same')
-    return filteredArray
-
 if __name__ == "__main__":
     # Argparse used to allow CLI arguments
     parser = argparse.ArgumentParser(description="Enter filename")
@@ -54,13 +40,13 @@ if __name__ == "__main__":
     tData, sigData = loadData(args.filename)
     # Filtering
     s = butterFilter(sigData)
-    # s = filterConvolve(sigData)
     # Saving filtered data for peak detection
     np.savetxt('ecgFiltered.csv', np.column_stack((tData, s)), delimiter=',')
     # Convert list to numpy array for plotting
     tData = np.array(tData)
     sigData = np.array(sigData)
-    sigData_centred = sigData - np.mean(sigData) 
+    # Subtract the mean to centre the signal around zero (removes DC offset/baseline shift)
+    sigData_centred = sigData - np.mean(sigData)
     plt.figure(figsize=(12, 6))
     start, end = 0, 30
     plt.plot(tData, sigData_centred, label="Original", alpha=0.6)
