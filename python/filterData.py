@@ -39,6 +39,14 @@ def peakDetection(array, threshold):
             peaks.append(index)
     return peaks
 
+def extractInfo(array):
+    # Get RR(time interval between consecutive peaks)
+    rr_samples = np.diff(array)
+    avg_samples = np.mean(rr_samples)
+    avg_seconds = avg_samples/360
+    bpm = 60/avg_seconds
+    return bpm
+
 def printS(arr):
     for x in range(50):
         print(arr[x])
@@ -61,6 +69,10 @@ if __name__ == "__main__":
     print(len(peaks))
     print(len(s))
 
+    #Extrating info from peaks
+    bpm = extractInfo(peaks)
+    print(f"BPM: {round(bpm, 2)}")
+
     # Saving filtered data for peak detection
     np.savetxt('ecgFiltered.csv', np.column_stack((tData, s)), delimiter=',')
 
@@ -75,6 +87,8 @@ if __name__ == "__main__":
     plt.plot(tData, sigData_centred, label="Original", alpha=0.6)
     plt.xlim(start, end)
     plt.plot(tData, s, label="Filtered")
+    plt.plot(tData[peaks], s[peaks], "x", color="red", markersize=10, label="Peaks")
+
     plt.xlabel("Time (s)")
     plt.ylabel("Amplitude")
     plt.title("ECG Signal: Original vs Filtered")
