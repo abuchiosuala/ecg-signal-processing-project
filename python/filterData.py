@@ -62,8 +62,7 @@ def extractInfo(rPeaks):
     min/max instantaneous heart rate by analyzing the intervals between
     consecutive R-peaks.
     Args:
-            rPeaks (array): 1D array of sample indices corresponding to
-                             detected R-peaks in the ECG signal.
+        rPeaks (array): 1D array of sample indices corresponding to detected R-peaks in the ECG signal.
 
     Returns:
         tuple:
@@ -111,7 +110,7 @@ if __name__ == "__main__":
     tData = np.array(tData)
     sigData = np.array(sigData)
 
-    # Subtract the mean to centre the signal around zero (removes DC offset/baseline shift)
+    # Subtract the mean to center the signal around zero (removes DC offset/baseline shift)
     sigDataCentred = sigData - np.mean(sigData)
 
     # Stats figure
@@ -140,4 +139,4 @@ if __name__ == "__main__":
     plt.ylabel("Amplitude")
     plt.title("ECG Signal: Original vs Filtered")
     plt.legend()
-    plt.show()  # Single call opens both figures
+    plt.show()
