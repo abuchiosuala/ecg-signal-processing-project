@@ -1,13 +1,11 @@
-# CLion / JetBrains
-.idea/
-
-# CMake build folders
-cmake-build-*/
-
-# Compiled binaries
-*.o
-*.out
-*.exe
-
 # macOS
 .DS_Store
+
+# Python
+__pycache__/
+*.pyc
+
+# PyCharm / IntelliJ
+.idea/
+*.iml
+
