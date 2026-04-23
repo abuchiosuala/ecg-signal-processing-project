@@ -34,4 +34,4 @@ def peakDetection(array, threshold):
     for index in range(1, len(array) - 1):
         if array[index] > array[index + 1] and array[index] > array[index -1] and array[index] > threshold:
             peaks.append(index)
-    return peaks
+    return np.array(peaks)
