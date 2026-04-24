@@ -5,6 +5,9 @@ from matplotlib.widgets import Slider, Button, SpanSelector
 from signalFiltering import butterFilter, peakDetection
 from analysis import extractInfo
 
+## user drags on plot  →  on_select runs  →  zoom plot filled
+## user moves slider   →  update runs     →  zoom plot re-synced with new filter
+
 # function to run in main to display the gui
 def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_order=4, init_threshold=1):
 
@@ -25,10 +28,14 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
     # upper plot — full signal
     # Drawing the initial lines
     # First one is on the top plot
+
+    # Unfiltered line
     line_raw,  = ax_ecg.plot(tData, raw_centred, color='tab:red',
                              alpha=0.4, lw=0.8, label='Raw')
+    # Filtered line
     line_filt, = ax_ecg.plot(tData, filtered, color='tab:blue',
                              lw=1.2, label='Filtered')
+    # Peaks
     scat_peaks = ax_ecg.scatter(tData[peaks], filtered[peaks],
                                 marker='x', color='orange',
                                 s=60, zorder=5, label='R-peaks')
@@ -39,6 +46,8 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
     ax_ecg.legend(fontsize=8)
 
     # lower plot — selected region
+
+    # Currently empty until user selects spot on the top plot
     line_zfilt, = ax_zoom.plot([], [], color='tab:blue', lw=1.2)
     scat_zoom = ax_zoom.scatter([], [], marker='x', color='orange', s=60)
     ax_zoom.set_xlabel('Time (s)')
@@ -57,7 +66,9 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
         if len(peaks) < 2:
             stats_text.set_text('Not enough peaks.')
             return
+        # Get information given # of peaks
         bpm, hrv, hi, lo = extractInfo(peaks, tData)
+        # Display the results
         stats_text.set_text(
             f'-- {label} --\n'
             f'Avg BPM : {bpm:.1f}\n'
@@ -67,12 +78,13 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
         )
     show_stats(peaks)
 
-    # ── sliders (same pattern as the matplotlib example) ──────────────────────
+    # sliders
     ax_low = fig.add_axes([0.1,  0.24, 0.55, 0.03])
     ax_high = fig.add_axes([0.1,  0.19, 0.55, 0.03])
     ax_order = fig.add_axes([0.1,  0.14, 0.55, 0.03])
     ax_thr = fig.add_axes([0.1,  0.09, 0.55, 0.03])
 
+    # Creating the actual slider and setting the appropriate vales
     sl_low = Slider(ax_low,   'Low-cut (Hz)',   0.1, 5.0,   valinit=init_lowcut)
     sl_high = Slider(ax_high,  'High-cut (Hz)',  5.0, 100.0, valinit=init_highcut)
     sl_order = Slider(ax_order, 'Filter order',   1,   8,     valinit=init_order, valfmt='%0.0f')
@@ -80,50 +92,61 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
 
     # ── update — called whenever any slider moves ─────────────────────────────
     def update(val):
+        # so given the value of the slider create a new filtered line
         new_filt  = butterFilter(sigData, fs,
                                  lowcut=sl_low.val,
                                  highcut=max(sl_high.val, sl_low.val + 0.5),
                                  order=max(1, int(round(sl_order.val))))
+        # also recompute the peaks
         new_peaks = peakDetection(new_filt, sl_thr.val)
 
+        # Updating the y-vales with the new line
         line_filt.set_ydata(new_filt)
-        scat_peaks.set_offsets(
-            np.column_stack((tData[new_peaks], new_filt[new_peaks]))
-            if len(new_peaks) else np.empty((0, 2))
-        )
+        if len(new_peaks):
+            # Set offsets lets me redraw my scatter plot without redrawing the whole plot
+            scat_peaks.set_offsets(np.column_stack((tData[new_peaks], new_filt[new_peaks])))
+        else:
+            scat_peaks.set_offsets(np.empty((0, 2)))
+
         ax_ecg.relim()
         ax_ecg.autoscale_view()
 
         # keep zoom panel in sync if a region is selected
+        # The span.extents are reading the yellow drag selection, so once they change this statement becomes Trie
         if span.extents[0] != span.extents[1]:
+            # Getting the specific range the user chose
             t0, t1  = span.extents
-            mask    = (tData >= t0) & (tData <= t1)
+            # Here we end up with every sample that falls within t0 and t1 because ths will return true for them
+            # NumPy goes through every single element in tData and evaluates the condition, storing the result in a new array the exact same length:
+            mask = (tData >= t0) & (tData <= t1)
             pk_mask = (tData[new_peaks] >= t0) & (tData[new_peaks] <= t1)
+            # Setting filtered line with the new data for the zoom plot
             line_zfilt.set_data(tData[mask], new_filt[mask])
-            scat_zoom.set_offsets(
-                np.column_stack((tData[new_peaks[pk_mask]],
-                                 new_filt[new_peaks[pk_mask]]))
-                if pk_mask.any() else np.empty((0, 2))
-            )
+
+            if pk_mask.any():
+                scat_zoom.set_offsets(np.column_stack((tData[new_peaks[pk_mask]], new_filt[new_peaks[pk_mask]])))
+            else:
+                scat_zoom.set_offsets(np.empty((0,2)))
             show_stats(new_peaks[pk_mask], label=f'{t0:.1f}s-{t1:.1f}s')
         else:
             show_stats(new_peaks)
 
         # store so on_select can read the latest filtered signal + peaks
         update.filtered = new_filt
-        update.peaks    = new_peaks
+        update.peaks = new_peaks
         fig.canvas.draw_idle()
 
     # seed before first slider move
     update.filtered = filtered
-    update.peaks    = peaks
+    update.peaks  = peaks
 
+    # Whenever the slider moves run the update function
     sl_low.on_changed(update)
     sl_high.on_changed(update)
     sl_order.on_changed(update)
     sl_thr.on_changed(update)
 
-    # ── reset button (same pattern as the matplotlib example) ─────────────────
+    # reset button
     ax_reset  = fig.add_axes([0.77, 0.05, 0.1, 0.04])
     btn_reset = Button(ax_reset, 'Reset', hovercolor='0.975')
 
@@ -139,14 +162,25 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
         ax_zoom.set_title('Selected region')
         fig.canvas.draw_idle()
 
+        # Remove the zoom
+        span.set_visible(False)
+        span.extents = (0, 0)
+
+        # Rest table data
+        show_stats(update.peaks, label='Full signal')
+        fig.canvas.draw_idle()
+
+
     btn_reset.on_clicked(reset)
 
     # ── SpanSelector — drag on upper plot to pick a region ────────────────────
     def on_select(t_min, t_max):
+        # getting filtered data and peaks from the update function
         filt  = update.filtered
         peaks = update.peaks
 
         # Boolean to see if the values in the og data range fall between t-min and t-max
+        # Here we end up with every sample that falls within t0 and t1 because ths will return true for them
         mask = (tData >= t_min) & (tData <= t_max)
         pk_sel = peaks[(tData[peaks] >= t_min) & (tData[peaks] <= t_max)]
 
