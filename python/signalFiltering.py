@@ -2,7 +2,7 @@
 This file is for filtering data and detection peaks from ECG scans. Can add more functions for other medical signals.
 This file also contains different types on signal processing functions ranging from beginner-friendly understanding to deeper understanding.
 """
-from scipy.signal import sosfiltfilt, butter, iirnotch, filtfilt
+from scipy.signal import sosfiltfilt, butter, iirnotch, filtfilt, savgol_filter
 import numpy as np
 
 def movingAverageFilter(array, window_size=10):
@@ -73,6 +73,31 @@ def notchFilter(array, quailityFactor=30, fs=360, notchFreq=60):
     b, a = iirnotch(notchFreq, quailityFactor, fs)
     filteredArray = filtfilt(b, a, signalArray)
     return filteredArray
+
+def savitzkyGolayFilter(array, windowSize=31, polyOrder=3):
+    """
+        Smooths a signal by fitting a polynomial to each window of samples.
+        Unlike a moving average, preserves peak shapes better because it fits
+        a curve rather than just averaging. Commonly used in EEG and PPG signals.
+        Args:
+            array      : The raw signal data as a list or NumPy array.
+            windowSize : Number of samples in each fitting window (default 11).
+                         Must be odd. Larger = smoother but may lose peak shape.
+            polyOrder  : Degree of the polynomial curve fitted (default 3).
+                         Must be less than windowSize.
+        Returns:
+            A NumPy array of the smoothed signal, same length as input.
+        """
+    if windowSize % 2 == 0:
+        raise ValueError("Window size must be an odd number")
+    if polyOrder > windowSize:
+        raise ValueError("Poly Order must be less than windowSize")
+    signalArray = np.array(array)
+    filteredArray = savgol_filter(signalArray, windowSize, polyOrder)
+    return filteredArray
+
+
+
 
 
 

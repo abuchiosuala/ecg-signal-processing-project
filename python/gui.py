@@ -1,8 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button, SpanSelector
-
-from signalFiltering import butterFilter, peakDetection
+from signalFiltering import butterFilter, peakDetection, savitzkyGolayFilter
 from analysis import extractInfo
 
 ## user drags on plot  →  on_select runs  →  zoom plot filled
@@ -169,8 +168,6 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
         # Rest table data
         show_stats(update.peaks, label='Full signal')
         fig.canvas.draw_idle()
-
-
     btn_reset.on_clicked(reset)
 
     # ── SpanSelector — drag on upper plot to pick a region ────────────────────

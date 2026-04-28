@@ -1,7 +1,7 @@
 import numpy as np
 import argparse
 from loadData import loadData
-from signalFiltering import butterFilter, peakDetection, movingAverageFilter, notchFilter
+from signalFiltering import butterFilter, peakDetection, movingAverageFilter, notchFilter, savitzkyGolayFilter
 from analysis import extractInfo
 from gui import launch
 
@@ -13,9 +13,12 @@ if __name__ == "__main__":
     parser.add_argument("--highcut",   type=float, default=40.0)
     parser.add_argument("--order",     type=int,   default=4)
     parser.add_argument("--threshold", type=float, default=1.0)
-    parser.add_argument("--windowsize", type=int, default=10)
+    parser.add_argument("--windowSize", type=int, default=10)  # moving average
+    parser.add_argument("--savWindowSize", type=int, default=11)  # savitzky-golay
     parser.add_argument("--quailityFactor", type=int, default=30)
     parser.add_argument("--notchFreq", type=int, default=60)
+    parser.add_argument("--polyOrder", type=int, default=3)
+
     parser.add_argument("--no-gui",    action="store_true",
                         help="Print stats only, skip GUI")
     args = parser.parse_args()
@@ -28,12 +31,15 @@ if __name__ == "__main__":
     s = butterFilter(sigData, args.fs, lowcut=args.lowcut,
                          highcut=args.highcut, order=args.order)
     # MOVING AVG FILTER
-    test = movingAverageFilter(sigData, args.windowsize)
+    test = movingAverageFilter(sigData, args.windowSize)
 
     # NOTCH FILTER
     notch = notchFilter(sigData, args.quailityFactor, args.fs, args.notchFreq)
 
-    peaks = peakDetection(s, args.threshold)
+    # SAVITZKYGOLAY FILTER
+    sav = savitzkyGolayFilter(sigData, args.savWindowSize, args.polyOrder)
+
+    peaks = peakDetection(sav, args.threshold)
 
     bpm, hrv, maxBpm, minBpm = extractInfo(peaks, tData)
     print(f"BPM:    {round(bpm, 2)}")
