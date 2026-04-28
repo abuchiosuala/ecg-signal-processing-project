@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider, Button, SpanSelector
-from signalFiltering import butterFilter, peakDetection, savitzkyGolayFilter
+from matplotlib.widgets import Slider, Button, SpanSelector, RadioButtons
+from signalFiltering import butterFilter, peakDetection, savitzkyGolayFilter, movingAverageFilter, notchFilter
 from analysis import extractInfo
 
 ## user drags on plot  →  on_select runs  →  zoom plot filled
@@ -9,20 +9,44 @@ from analysis import extractInfo
 
 # function to run in main to display the gui
 def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_order=4, init_threshold=1):
-
-    # running the existing functions to get data about the signal filtering
-    filtered = butterFilter(sigData, fs, lowcut=init_lowcut,
-                               highcut=init_highcut, order=init_order)
-    peaks = peakDetection(filtered, init_threshold)
-    # This subtracts the average from the raw signal to remove the flat vertical shift
-    raw_centred = sigData - np.mean(sigData)
-
     # ── figure + main axes ────────────────────────────────────────────────────
     # Here we begin to create the figure and axes of my plot
     # ax_ecg is the top plot and ax_zoom is the bottom plot
     fig, (ax_ecg, ax_zoom) = plt.subplots(2, 1, figsize=(12, 7), facecolor='lightskyblue')
     # making room for the sliders below and basically toggling margin and padding
     fig.subplots_adjust(left=0.1, right=0.75, bottom=0.35, hspace=0.5)
+
+    # creating radio button
+    ax_radio = fig.add_axes([0.77, 0.15, 0.20, 0.18])
+    radio = RadioButtons(ax_radio, ('Butterworth', 'Moving Avg', 'Notch', 'Savitzky-Golay'))
+
+    def apply_filter():
+        label = radio.value_selected
+        print(label)
+        if label == "Butterworth":
+            return butterFilter(sigData, fs, lowcut=init_lowcut,
+                               highcut=init_highcut, order=init_order)
+        elif label == "Moving Avg":
+            return movingAverageFilter(sigData, window_size=10)
+        elif label == "Notch":
+            return notchFilter(sigData, quailityFactor=30, fs=360, notchFreq=60)
+        elif label == "Savitzky-Golay":
+            return savitzkyGolayFilter(sigData, windowSize=31, polyOrder=3)
+
+    # running the existing functions to get data about the signal filtering
+    filtered = apply_filter()
+    # filtered = butterFilter(sigData, fs, lowcut=init_lowcut,
+    #                            highcut=init_highcut, order=init_order)
+    peaks = peakDetection(filtered, init_threshold)
+    # This subtracts the average from the raw signal to remove the flat vertical shift
+    raw_centred = sigData - np.mean(sigData)
+
+
+
+
+
+
+
 
     # upper plot — full signal
     # Drawing the initial lines
@@ -92,10 +116,7 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
     # ── update — called whenever any slider moves ─────────────────────────────
     def update(val):
         # so given the value of the slider create a new filtered line
-        new_filt  = butterFilter(sigData, fs,
-                                 lowcut=sl_low.val,
-                                 highcut=max(sl_high.val, sl_low.val + 0.5),
-                                 order=max(1, int(round(sl_order.val))))
+        new_filt  = apply_filter()
         # also recompute the peaks
         new_peaks = peakDetection(new_filt, sl_thr.val)
 
@@ -193,6 +214,11 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
         ax_zoom.set_title(f'Selected: {t_min:.2f}s - {t_max:.2f}s')
         show_stats(pk_sel, label=f'{t_min:.1f}s-{t_max:.1f}s')
         fig.canvas.draw_idle()
+
+    def onPress(label):
+        update(None)  # just trigger a redraw when button is clicked
+
+    radio.on_clicked(onPress)
 
     # keep span referenced — Python GC would destroy the widget otherwise
     span = SpanSelector(ax_ecg, on_select, direction='horizontal',
