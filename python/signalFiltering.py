@@ -74,7 +74,7 @@ def notchFilter(array, quailityFactor=30, fs=360, notchFreq=60):
     filteredArray = filtfilt(b, a, signalArray)
     return filteredArray
 
-def savitzkyGolayFilter(array, windowSize=31, polyOrder=3):
+def savitzkyGolayFilter(array, windowSize=11, polyOrder=3):
     """
         Smooths a signal by fitting a polynomial to each window of samples.
         Unlike a moving average, preserves peak shapes better because it fits

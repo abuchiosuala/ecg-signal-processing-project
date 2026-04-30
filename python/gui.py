@@ -9,7 +9,6 @@ from analysis import extractInfo
 
 # function to run in main to display the gui
 def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_order=4, init_threshold=1):
-    # ── figure + main axes ────────────────────────────────────────────────────
     # Here we begin to create the figure and axes of my plot
     # ax_ecg is the top plot and ax_zoom is the bottom plot
     fig, (ax_ecg, ax_zoom) = plt.subplots(2, 1, figsize=(12, 7), facecolor='lightskyblue')
@@ -22,31 +21,26 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
 
     def apply_filter():
         label = radio.value_selected
-        print(label)
         if label == "Butterworth":
-            return butterFilter(sigData, fs, lowcut=init_lowcut,
-                               highcut=init_highcut, order=init_order)
+            return butterFilter(sigData, fs, lowcut=init_lowcut, highcut=init_highcut, order=init_order)
         elif label == "Moving Avg":
             return movingAverageFilter(sigData, window_size=10)
         elif label == "Notch":
             return notchFilter(sigData, quailityFactor=30, fs=360, notchFreq=60)
         elif label == "Savitzky-Golay":
-            return savitzkyGolayFilter(sigData, windowSize=31, polyOrder=3)
+            return savitzkyGolayFilter(sigData, windowSize=11, polyOrder=3)
 
     # running the existing functions to get data about the signal filtering
-    filtered = apply_filter()
-    # filtered = butterFilter(sigData, fs, lowcut=init_lowcut,
-    #                            highcut=init_highcut, order=init_order)
-    peaks = peakDetection(filtered, init_threshold)
+    # filtered = apply_filter()
+    filtered = butterFilter(sigData, fs, lowcut=init_lowcut, highcut=init_highcut, order=init_order)
+    # filtered = movingAverageFilter(sigData, window_size=10)
+    # filtered = notchFilter(notchFilter(sigData, quailityFactor=30, fs=360, notchFreq=30),quailityFactor=30, fs=360, notchFreq=60 )
+    # filtered = savitzkyGolayFilter(sigData, windowSize=11, polyOrder=3)
+    # filtered = sigData
+
+    peaks = peakDetection(filtered, 0.5)
     # This subtracts the average from the raw signal to remove the flat vertical shift
     raw_centred = sigData - np.mean(sigData)
-
-
-
-
-
-
-
 
     # upper plot — full signal
     # Drawing the initial lines
@@ -97,7 +91,8 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
             f'Avg BPM : {bpm:.1f}\n'
             f'HRV     : {hrv:.1f} ms\n'
             f'Max BPM : {hi:.1f}\n'
-            f'Min BPM : {lo:.1f}'
+            f'Min BPM : {lo:.1f}\n'
+            f'Number of Peaks: {len(peaks)}'
         )
     show_stats(peaks)
 
@@ -116,9 +111,12 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
     # ── update — called whenever any slider moves ─────────────────────────────
     def update(val):
         # so given the value of the slider create a new filtered line
-        new_filt  = apply_filter()
-        # also recompute the peaks
-        new_peaks = peakDetection(new_filt, sl_thr.val)
+        new_filt  = apply_filter() # getting filtered signal from checkbox
+        # new_filt = butterFilter(sigData, fs,
+        #                         lowcut=sl_low.val,  # reads all four
+        #                         highcut=sl_high.val,
+        #                         order=sl_order.val)        # also recompute the peaks
+        new_peaks = peakDetection(new_filt, sl_thr.val) # given the new filtered signal and threshold compute peaks
 
         # Updating the y-vales with the new line
         line_filt.set_ydata(new_filt)
@@ -132,7 +130,7 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
         ax_ecg.autoscale_view()
 
         # keep zoom panel in sync if a region is selected
-        # The span.extents are reading the yellow drag selection, so once they change this statement becomes Trie
+        # The span.extents are reading the yellow drag selection, so once they change this statement becomes True
         if span.extents[0] != span.extents[1]:
             # Getting the specific range the user chose
             t0, t1  = span.extents

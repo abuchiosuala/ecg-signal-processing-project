@@ -12,7 +12,7 @@ if __name__ == "__main__":
     parser.add_argument("--lowcut",    type=float, default=0.5)
     parser.add_argument("--highcut",   type=float, default=40.0)
     parser.add_argument("--order",     type=int,   default=4)
-    parser.add_argument("--threshold", type=float, default=1.0)
+    parser.add_argument("--threshold", type=float, default=0.5)
     parser.add_argument("--windowSize", type=int, default=10)  # moving average
     parser.add_argument("--savWindowSize", type=int, default=11)  # savitzky-golay
     parser.add_argument("--quailityFactor", type=int, default=30)
@@ -24,6 +24,15 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     tData, sigData = loadData(args.filename, args.fs)
+
+    # --- Add synthetic 60 Hz noise ---
+    noise_30 = 0.1 * np.sin(2 * np.pi * 30 * tData)
+    noise_60 = 0.1 * np.sin(2 * np.pi * 60 * tData)
+    noise_drift = 0.5 * np.sin(2 * np.pi * 0.1 * tData)
+
+    # random gaussian noise — what moving average handles
+    noise_random = 0.3 * np.random.randn(len(tData))
+    noisy_signal = sigData + noise_60
 
     # Filtering + peak detection
 
@@ -39,18 +48,14 @@ if __name__ == "__main__":
     # SAVITZKYGOLAY FILTER
     sav = savitzkyGolayFilter(sigData, args.savWindowSize, args.polyOrder)
 
-    peaks = peakDetection(sav, args.threshold)
+    peaks = peakDetection(test, args.threshold)
 
     bpm, hrv, maxBpm, minBpm = extractInfo(peaks, tData)
-    print(f"BPM:    {round(bpm, 2)}")
-    print(f"HRV:    {round(hrv, 2)}")
-    print(f"maxBpm: {round(maxBpm, 2)}")
-    print(f"minBpm: {round(minBpm, 2)}")
 
     # Save filtered signal
     np.savetxt('ecgFiltered.csv', np.column_stack((tData, s)), delimiter=',')
 
     if not args.no_gui:
-        launch(tData, sigData, fs=args.fs,
+        launch(tData, noisy_signal, fs=args.fs,
                init_lowcut=args.lowcut, init_highcut=args.highcut,
                init_order=args.order,   init_threshold=args.threshold)
