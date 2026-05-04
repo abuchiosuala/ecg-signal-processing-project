@@ -43,7 +43,7 @@ if __name__ == "__main__":
     test = movingAverageFilter(sigData, args.windowSize)
 
     # NOTCH FILTER
-    notch = notchFilter(sigData, args.quailityFactor, args.fs, args.notchFreq)
+    notch = notchFilter(sigData, args.fs, args.quailityFactor, args.notchFreq)
 
     # SAVITZKYGOLAY FILTER
     sav = savitzkyGolayFilter(sigData, args.savWindowSize, args.polyOrder)

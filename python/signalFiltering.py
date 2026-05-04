@@ -55,7 +55,7 @@ def peakDetection(array, threshold):
             peaks.append(index)
     return np.array(peaks, dtype=int)
 
-def notchFilter(array, quailityFactor=30, fs=360, notchFreq=60):
+def notchFilter(array, fs, quailityFactor=30, notchFreq=60):
     """
         Removes a specific frequency from the signal using a notch (band-stop) filter.
         Used to eliminate power line interference — 60 Hz in North America, 50 Hz in Europe.
@@ -95,11 +95,3 @@ def savitzkyGolayFilter(array, windowSize=11, polyOrder=3):
     signalArray = np.array(array)
     filteredArray = savgol_filter(signalArray, windowSize, polyOrder)
     return filteredArray
-
-
-
-
-
-
-
-
