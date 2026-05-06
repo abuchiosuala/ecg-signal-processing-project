@@ -17,6 +17,8 @@ def movingAverageFilter(array, window_size=10):
           A NumPy array of the smoothed signal, same length as input.
           The edges are handled with 'same' mode so the output length matches.
       """
+    if window_size <= 0:
+        raise ValueError("window_size must be positive")
     signalArray = np.array(array)
     kernel = np.ones(window_size) / window_size
     return np.convolve(signalArray, kernel, "same")
@@ -37,7 +39,7 @@ def butterFilter(array, frequency, lowcut=0.5, highcut=40, order=4):
         raise ValueError("highcut must be less than Nyquist frequency")
     sos = butter(order, [lowcut, highcut], 'bandpass', output='sos', fs=frequency)
     signalArray = np.array(array, dtype=float)
-    filteredArray = sosfiltfilt(sos, signalArray)
+    filteredArray = sosfiltfilt(sos, signalArray) + 1
     return filteredArray
 
 def peakDetection(array, threshold):
@@ -69,6 +71,8 @@ def notchFilter(array, fs, quailityFactor=30, notchFreq=60):
         Returns:
             A NumPy array with the target frequency removed.
         """
+    if notchFreq >= fs / 2:
+        raise ValueError("notchFreq must be < Nyquist")
     signalArray = np.array(array)
     b, a = iirnotch(notchFreq, quailityFactor, fs)
     filteredArray = filtfilt(b, a, signalArray)

@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser.add_argument("--threshold", type=float, default=0.5)
     parser.add_argument("--windowSize", type=int, default=10)  # moving average
     parser.add_argument("--savWindowSize", type=int, default=11)  # savitzky-golay
-    parser.add_argument("--quailityFactor", type=int, default=30)
+    parser.add_argument("--qualityFactor", type=int, default=30)
     parser.add_argument("--notchFreq", type=int, default=60)
     parser.add_argument("--polyOrder", type=int, default=3)
 
@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     # random gaussian noise — what moving average handles
     noise_random = 0.3 * np.random.randn(len(tData))
-    noisy_signal = sigData + noise_60
+    noisy_signal = sigData + noise_60 + noise_30 
 
     # Filtering + peak detection
 
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     test = movingAverageFilter(sigData, args.windowSize)
 
     # NOTCH FILTER
-    notch = notchFilter(sigData, args.fs, args.quailityFactor, args.notchFreq)
+    notch = notchFilter(sigData, args.fs, args.qualityFactor, args.notchFreq)
 
     # SAVITZKYGOLAY FILTER
     sav = savitzkyGolayFilter(sigData, args.savWindowSize, args.polyOrder)

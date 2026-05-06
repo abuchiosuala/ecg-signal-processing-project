@@ -34,3 +34,20 @@ def extractInfo(rPeaks, timeArray):
     maxBpm = np.max(data)
     minBpm = np.min(data)
     return bpm, HRV, maxBpm, minBpm
+
+def extractFrequency(sigData, fs):
+    """
+    Computes the frequency spectrum of a signal using the Fast Fourier Transform (FFT).
+    Converts the signal from the time domain into the frequency domain, allowing
+    you to see which frequencies are present and how strong they are.
+    Args:
+        sigData : The signal data as a list or NumPy array.
+        fs      : Sampling frequency in Hz.
+    Returns:
+        freqs     : NumPy array of frequency values in Hz (x axis).
+        magnitude : NumPy array of magnitude values showing the strength
+                    of each frequency (y axis).
+    """
+    freqs = np.fft.rfftfreq(len(sigData), 1/fs)
+    magnitude = np.abs(np.fft.rfft(sigData))
+    return freqs, magnitude

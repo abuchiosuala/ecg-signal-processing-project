@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button, SpanSelector, RadioButtons
 from signalFiltering import butterFilter, peakDetection, savitzkyGolayFilter, movingAverageFilter, notchFilter
-from analysis import extractInfo
+from analysis import extractInfo, extractFrequency
 
 ## user drags on plot  →  on_select runs  →  zoom plot filled
 ## user moves slider   →  update runs     →  zoom plot re-synced with new filter
@@ -15,12 +15,27 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
     # making room for the sliders below and basically toggling margin and padding
     fig.subplots_adjust(left=0.1, right=0.75, bottom=0.35, hspace=0.5)
 
+    # sliders
+    ax_low = fig.add_axes([0.1, 0.24, 0.55, 0.03])
+    ax_high = fig.add_axes([0.1, 0.19, 0.55, 0.03])
+    ax_order = fig.add_axes([0.1, 0.14, 0.55, 0.03])
+    ax_thr = fig.add_axes([0.1, 0.09, 0.55, 0.03])
+
+    # Creating the actual slider and setting the appropriate vales
+    sl_low = Slider(ax_low, 'Low-cut (Hz)', 0.5, 50.0, valinit=init_lowcut)
+    sl_high = Slider(ax_high, 'High-cut (Hz)', 0.0, 100.0, valinit=init_highcut)
+    sl_order = Slider(ax_order, 'Filter order', 1, 8, valinit=init_order, valfmt='%0.0f')
+    sl_thr = Slider(ax_thr, 'Peak threshold', -2.0, 3.0, valinit=init_threshold)
+
     # creating radio button
     ax_radio = fig.add_axes([0.77, 0.15, 0.20, 0.18])
     radio = RadioButtons(ax_radio, ('Butterworth', 'Moving Avg', 'Notch', 'Savitzky-Golay'))
 
     def apply_filter():
         label = radio.value_selected
+        init_lowcut = sl_low.val
+        init_highcut = sl_high.val
+        init_order = sl_order.val
         if label == "Butterworth":
             return butterFilter(sigData, fs, lowcut=init_lowcut, highcut=init_highcut, order=init_order)
         elif label == "Moving Avg":
@@ -30,9 +45,8 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
         elif label == "Savitzky-Golay":
             return savitzkyGolayFilter(sigData, windowSize=11, polyOrder=3)
 
-    # running the existing functions to get data about the signal filtering
-    # filtered = apply_filter()
-    filtered = butterFilter(sigData, fs, lowcut=init_lowcut, highcut=init_highcut, order=init_order)
+    filtered = apply_filter()
+    # filtered = butterFilter(sigData, fs, lowcut=init_lowcut, highcut=init_highcut, order=init_order)
     # filtered = movingAverageFilter(sigData, window_size=10)
     # filtered = notchFilter(notchFilter(sigData, quailityFactor=30, fs=360, notchFreq=30),quailityFactor=30, fs=360, notchFreq=60 )
     # filtered = savitzkyGolayFilter(sigData, windowSize=11, polyOrder=3)
@@ -45,7 +59,6 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
     # upper plot — full signal
     # Drawing the initial lines
     # First one is on the top plot
-
     # Unfiltered line
     line_raw,  = ax_ecg.plot(tData, raw_centred, color='tab:red',
                              alpha=0.4, lw=0.8, label='Raw')
@@ -63,7 +76,6 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
     ax_ecg.legend(fontsize=8)
 
     # lower plot — selected region
-
     # Currently empty until user selects spot on the top plot
     line_zfilt, = ax_zoom.plot([], [], color='tab:blue', lw=1.2)
     scat_zoom = ax_zoom.scatter([], [], marker='x', color='orange', s=60)
@@ -96,26 +108,10 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
         )
     show_stats(peaks)
 
-    # sliders
-    ax_low = fig.add_axes([0.1,  0.24, 0.55, 0.03])
-    ax_high = fig.add_axes([0.1,  0.19, 0.55, 0.03])
-    ax_order = fig.add_axes([0.1,  0.14, 0.55, 0.03])
-    ax_thr = fig.add_axes([0.1,  0.09, 0.55, 0.03])
-
-    # Creating the actual slider and setting the appropriate vales
-    sl_low = Slider(ax_low,   'Low-cut (Hz)',   0.1, 5.0,   valinit=init_lowcut)
-    sl_high = Slider(ax_high,  'High-cut (Hz)',  5.0, 100.0, valinit=init_highcut)
-    sl_order = Slider(ax_order, 'Filter order',   1,   8,     valinit=init_order, valfmt='%0.0f')
-    sl_thr = Slider(ax_thr,   'Peak threshold', -2.0, 3.0,  valinit=init_threshold)
-
-    # ── update — called whenever any slider moves ─────────────────────────────
+    # update — called whenever any slider moves
     def update(val):
         # so given the value of the slider create a new filtered line
         new_filt  = apply_filter() # getting filtered signal from checkbox
-        # new_filt = butterFilter(sigData, fs,
-        #                         lowcut=sl_low.val,  # reads all four
-        #                         highcut=sl_high.val,
-        #                         order=sl_order.val)        # also recompute the peaks
         new_peaks = peakDetection(new_filt, sl_thr.val) # given the new filtered signal and threshold compute peaks
 
         # Updating the y-vales with the new line
@@ -168,6 +164,35 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
     ax_reset  = fig.add_axes([0.77, 0.05, 0.1, 0.04])
     btn_reset = Button(ax_reset, 'Reset', hovercolor='0.975')
 
+    ax_fft = fig.add_axes([0.77, 0.10, 0.1, 0.04])
+    btn_fft = Button(ax_fft, "Show Frequency" )
+
+    def showFrequency(event):
+        freqs_raw, mag_raw = extractFrequency(sigData, fs)
+        freqs_filt, mag_filt = extractFrequency(update.filtered, fs)
+
+        fig_fft, ax_fft_plot = plt.subplots(figsize=(10, 4))
+
+        # Plot raw vs filtered
+        ax_fft_plot.plot(freqs_raw, mag_raw, alpha=0.5, label='Raw')
+        ax_fft_plot.plot(freqs_filt, mag_filt, linewidth=2, label='Filtered')
+
+        # Labels and styling
+        ax_fft_plot.set_xlabel('Frequency (Hz)')
+        ax_fft_plot.set_ylabel('Magnitude')
+        ax_fft_plot.set_title('Frequency Spectrum — Raw vs Filtered')
+        ax_fft_plot.set_xlim(0, 100)
+
+        # Better scaling
+        ax_fft_plot.set_ylim(0, max(mag_raw) * 1.1)
+
+        ax_fft_plot.legend()
+        ax_fft_plot.grid(alpha=0.3)
+
+        plt.show()
+
+    btn_fft.on_clicked(showFrequency)
+
     def reset(event):
         sl_low.reset()
         sl_high.reset()
@@ -189,7 +214,7 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
         fig.canvas.draw_idle()
     btn_reset.on_clicked(reset)
 
-    # ── SpanSelector — drag on upper plot to pick a region ────────────────────
+    # SpanSelector — drag on upper plot to pick a region
     def on_select(t_min, t_max):
         # getting filtered data and peaks from the update function
         filt  = update.filtered
@@ -215,6 +240,9 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
 
     def onPress(label):
         update(None)  # just trigger a redraw when button is clicked
+
+
+
 
     radio.on_clicked(onPress)
 
