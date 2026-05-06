@@ -8,7 +8,7 @@ from analysis import extractInfo, extractFrequency
 ## user moves slider   →  update runs     →  zoom plot re-synced with new filter
 
 # function to run in main to display the gui
-def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_order=4, init_threshold=1):
+def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_order=4, init_threshold=1, windowSize=10, savWindowSize=11, polyOrder=3, qualityFactor=30, notchFreq=60):
     # Here we begin to create the figure and axes of my plot
     # ax_ecg is the top plot and ax_zoom is the bottom plot
     fig, (ax_ecg, ax_zoom) = plt.subplots(2, 1, figsize=(12, 7), facecolor='lightskyblue')
@@ -33,26 +33,29 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
 
     def apply_filter():
         label = radio.value_selected
-        init_lowcut = sl_low.val
-        init_highcut = sl_high.val
-        init_order = sl_order.val
+
+        low = sl_low.val
+        high = sl_high.val
+        order = sl_order.val
+
         if label == "Butterworth":
-            return butterFilter(sigData, fs, lowcut=init_lowcut, highcut=init_highcut, order=init_order)
+            return butterFilter(sigData, fs, lowcut=low, highcut=high, order=order)
+
         elif label == "Moving Avg":
-            return movingAverageFilter(sigData, window_size=10)
+            return movingAverageFilter(sigData, window_size=windowSize)
+
         elif label == "Notch":
-            return notchFilter(sigData, quailityFactor=30, fs=360, notchFreq=60)
+            return notchFilter(sigData, fs=fs,
+                               quailityFactor=qualityFactor,
+                               notchFreq=notchFreq)
+
         elif label == "Savitzky-Golay":
-            return savitzkyGolayFilter(sigData, windowSize=11, polyOrder=3)
+            return savitzkyGolayFilter(sigData,
+                                       windowSize=savWindowSize,
+                                       polyOrder=polyOrder)
 
     filtered = apply_filter()
-    # filtered = butterFilter(sigData, fs, lowcut=init_lowcut, highcut=init_highcut, order=init_order)
-    # filtered = movingAverageFilter(sigData, window_size=10)
-    # filtered = notchFilter(notchFilter(sigData, quailityFactor=30, fs=360, notchFreq=30),quailityFactor=30, fs=360, notchFreq=60 )
-    # filtered = savitzkyGolayFilter(sigData, windowSize=11, polyOrder=3)
-    # filtered = sigData
-
-    peaks = peakDetection(filtered, 0.5)
+    peaks = peakDetection(filtered, 1.0)
     # This subtracts the average from the raw signal to remove the flat vertical shift
     raw_centred = sigData - np.mean(sigData)
 
@@ -240,9 +243,6 @@ def launch(tData, sigData, fs=360.0, init_lowcut=0.5, init_highcut=40.0, init_or
 
     def onPress(label):
         update(None)  # just trigger a redraw when button is clicked
-
-
-
 
     radio.on_clicked(onPress)
 

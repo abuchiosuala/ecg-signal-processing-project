@@ -12,7 +12,7 @@ if __name__ == "__main__":
     parser.add_argument("--lowcut",    type=float, default=0.5)
     parser.add_argument("--highcut",   type=float, default=40.0)
     parser.add_argument("--order",     type=int,   default=4)
-    parser.add_argument("--threshold", type=float, default=0.5)
+    parser.add_argument("--threshold", type=float, default=1.0)
     parser.add_argument("--windowSize", type=int, default=10)  # moving average
     parser.add_argument("--savWindowSize", type=int, default=11)  # savitzky-golay
     parser.add_argument("--qualityFactor", type=int, default=30)
@@ -29,33 +29,20 @@ if __name__ == "__main__":
     noise_30 = 0.1 * np.sin(2 * np.pi * 30 * tData)
     noise_60 = 0.1 * np.sin(2 * np.pi * 60 * tData)
     noise_drift = 0.5 * np.sin(2 * np.pi * 0.1 * tData)
-
-    # random gaussian noise — what moving average handles
     noise_random = 0.3 * np.random.randn(len(tData))
-    noisy_signal = sigData + noise_60 + noise_30 
-
-    # Filtering + peak detection
-
-    # BUTTERWORTH FILTER
-    s = butterFilter(sigData, args.fs, lowcut=args.lowcut,
-                         highcut=args.highcut, order=args.order)
-    # MOVING AVG FILTER
-    test = movingAverageFilter(sigData, args.windowSize)
-
-    # NOTCH FILTER
-    notch = notchFilter(sigData, args.fs, args.qualityFactor, args.notchFreq)
-
-    # SAVITZKYGOLAY FILTER
-    sav = savitzkyGolayFilter(sigData, args.savWindowSize, args.polyOrder)
-
-    peaks = peakDetection(test, args.threshold)
-
-    bpm, hrv, maxBpm, minBpm = extractInfo(peaks, tData)
-
-    # Save filtered signal
-    np.savetxt('ecgFiltered.csv', np.column_stack((tData, s)), delimiter=',')
+    noisy_signal = sigData + noise_60
 
     if not args.no_gui:
-        launch(tData, noisy_signal, fs=args.fs,
-               init_lowcut=args.lowcut, init_highcut=args.highcut,
-               init_order=args.order,   init_threshold=args.threshold)
+        launch(
+            tData, noisy_signal,
+            fs=args.fs,
+            init_lowcut=args.lowcut,
+            init_highcut=args.highcut,
+            init_order=args.order,
+            init_threshold=args.threshold,
+            windowSize=args.windowSize,
+            savWindowSize=args.savWindowSize,
+            polyOrder=args.polyOrder,
+            qualityFactor=args.qualityFactor,
+            notchFreq=args.notchFreq
+        )

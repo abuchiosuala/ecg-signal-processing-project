@@ -39,7 +39,7 @@ def butterFilter(array, frequency, lowcut=0.5, highcut=40, order=4):
         raise ValueError("highcut must be less than Nyquist frequency")
     sos = butter(order, [lowcut, highcut], 'bandpass', output='sos', fs=frequency)
     signalArray = np.array(array, dtype=float)
-    filteredArray = sosfiltfilt(sos, signalArray) + 1
+    filteredArray = sosfiltfilt(sos, signalArray)
     return filteredArray
 
 def peakDetection(array, threshold):
